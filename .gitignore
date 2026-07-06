@@ -1,8 +1,44 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-.ipynb_checkpoints/
+*$py.class
+
+# Virtual environments
 .venv/
 venv/
+env/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Environment variables and secrets
 .env
+.env.*
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated figures (keep folder structure)
 results/figures/*.png
+results/figures/*.pdf
+results/figures/*.svg
+!results/figures/.gitkeep
