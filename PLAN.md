@@ -37,14 +37,14 @@ As diretrizes abaixo embasam as escolhas estatísticas e dão o suporte analíti
 - [x] Síntese: Registrar os principais modos de falha e impacto operacional.
 
 ### Fase 3: Comparação e Recomendação - `03_comparacao_e_recomendacao.ipynb`
-- [ ] Calcular métricas de desempenho para o Modelo B.
-- [ ] Executar Teste de McNemar entre Modelo A e Modelo B; calcular e interpretar o p-valor.
-- [ ] Avaliar trade-offs de troca: O Modelo B ganha no global, mas perde em categorias críticas?
-- [ ] Síntese: Redigir o parágrafo de recomendação executiva evidenciando riscos e limitações.
+- [x] Calcular métricas de desempenho para o Modelo B.
+- [x] Executar Teste de McNemar entre Modelo A e Modelo B; calcular e interpretar o p-valor.
+- [x] Avaliar trade-offs de troca: O Modelo B ganha no global, mas perde em categorias críticas?
+- [x] Síntese: Redigir o parágrafo de recomendação executiva evidenciando riscos e limitações.
 
 ### Fase 4: Entrega Final
-- [ ] Compilar o sumário executivo no `README.md`.
-- [ ] Garantir que todos os notebooks rodem de ponta a ponta sem erros.
+- [x] Compilar o sumário executivo no `README.md`.
+- [x] Garantir que todos os notebooks rodem de ponta a ponta sem erros.
 
 ## 4. Log de Decisões
 
@@ -75,3 +75,17 @@ As diretrizes abaixo embasam as escolhas estatísticas e dão o suporte analíti
     * *Impacto Prático:* O uso da métrica `conf_modelo_a` como gatilho para automação total de despachos (*Straight-Through Processing*) é de alto risco.
 * **4. Viés Algorítmico e Subgrupos:**
     * Testes Qui-Quadrado aplicados aos erros comprovaram desempenho homogêneo para bairro (p=0.86) e canal (p=0.36), atestando equidade na prestação do serviço. No entanto, rejeitou-se a hipótese de homogeneidade para o comprimento do texto ($p < 0.05$). Textos do primeiro quartil (Q1, manifestações muito curtas) concentram taxas de erro expressivamente maiores devido à esparsidade de features (falta de contexto semântico).
+
+### Conclusões da Fase 3 (Modelo A vs. Modelo B)
+
+* **1. Validação Estatística de Superioridade (Teste de McNemar):**
+    * A comparação pareada sobre os mesmos 5.000 chamados resultou em um p-valor de $3.95 \times 10^{-34}$, rejeitando categoricamente a hipótese nula de equivalência. A evolução do Modelo B (F1-Score Macro de 0.8516 vs. 0.7704 do Modelo A) representa um ganho preditivo real, estrutural e imune ao acaso amostral.
+* **2. Resolução do Gargalo Logístico Principal:**
+    * A auditoria via matriz de confusão concorrente provou que o Modelo B resolveu a sobreposição semântica clássica encontrada na Fase 2. O desvio sistemático que classificava chamados de `esgoto_vazamento` como `buraco_via` foi mitigada, eliminando o principal vetor de erro de envio de equipes da prefeitura.
+* **3. Viabilidade de Operação Autônoma com Triagem Calibrada:**
+    * O Modelo B reduziu o erro de calibração (*Expected Calibration Error* - ECE) de 0.1516 para 0.1195. Pela primeira vez no projeto, as curvas de densidade de confiança de acertos e erros foram estatisticamente separadas. 
+    * *Impacto Prático:* Permite criar uma esteira segura de automação com supervisão humana (*human-in-the-loop*), onde chamados com confiança inferior a 80% são retidos para auditoria manual, mitigando erros antes do despacho logístico.
+* **4. Resolução da Esparsidade em Textos Curtos:**
+    * O Teste Qui-Quadrado de independência de erros para o Modelo B validou a homogeneidade em relação ao comprimento do texto (p-valor = 0.069). O algoritmo candidato mitigou o déficit de contexto de entradas curtas (Q1), derrubando a taxa de erro local de 40.4% para 14.5%.
+* **5. O Trade-off Identificado (Risco de Implementação):**
+    * A otimização global gerou uma única regressão localizada: a categoria `poda_arvore` sofreu uma perda absoluta de 14.7 pontos percentuais no F1-Score. Os erros encontram-se pulverizados e exigem regras sistêmicas de segurança (*guardrails*) focadas em vocabulário florestal/arborização para monitoramento inicial pós-deploy.

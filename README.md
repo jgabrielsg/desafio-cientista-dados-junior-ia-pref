@@ -1,141 +1,41 @@
-# Desafio Técnico - Cientista de Dados Junior
-## Time de IA - Casa Civil / IplanRio
+# Auditoria de Classificadores 1746 - Casa Civil / IplanRio
+
+Este repositório contém a resolução do desafio técnico. O objetivo do projeto foi auditar o classificador de chamados atual da prefeitura (Modelo A) e avaliar, com rigor estatístico, se a sua substituição por uma nova versão (Modelo B) traria ganhos reais para a operação da Central 1746.
+
+## Como Reproduzir
+
+Para garantir que o código rode perfeitamente em qualquer máquina, o projeto foi isolado com dependências exatas. Siga os passos no terminal:
+
+1. Clone este repositório.
+2. Crie um ambiente virtual na raiz do projeto: `python -m venv .venv`
+3. Ative o ambiente virtual:
+* No Windows: `.venv\Scripts\Activate.ps1` (ou `.bat` no CMD)
+* No Linux/Mac: `source .venv/bin/activate`
+
+
+4. Instale as dependências: `pip install -r requirements.txt`
+5. Abra o Jupyter (`jupyter notebook`) e execute os três notebooks localizados na pasta `notebooks/` em ordem sequencial (01, 02 e 03).
+
+## Abordagem Metodológica
+
+A análise evitou o uso de métricas simples que costumam mascarar falhas. Como os chamados são muito desbalanceados (muitos sobre iluminação, poucos sobre sinalização), focamos no F1-Score para garantir que problemas raros tivessem peso na avaliação.
+
+Para termos certeza de que os resultados não eram obra do acaso, utilizamos simulações estatísticas (Bootstrapping) para criar intervalos de confiança. Na hora de comparar os dois modelos frente a frente, aplicamos o Teste de McNemar, ideal para cenários onde dois algoritmos avaliam exatamente os mesmos dados. Por fim, investigamos não apenas quem acerta mais, mas quem é mais confiável para operar sozinho usando métricas de calibração de probabilidade.
 
 ---
 
-## Contexto
+## Sumário Executivo
 
-A **Central 1746** recebe milhares de chamados de cidadãos todos os dias. Para agilizar o encaminhamento, o time de IA da Casa Civil desenvolveu um classificador automático que lê o texto do chamado e prevê a categoria do serviço (o **modelo A**, hoje em produção). Recentemente, uma nova versão foi desenvolvida (o **modelo B**) e precisamos decidir se vale a pena substituir o modelo atual.
+Nossa investigação começou com o entendimento do comportamento dos cidadãos e das características dos chamados. Descobrimos que atributos como o bairro da ocorrência, o dia da semana ou o canal utilizado (app ou telefone) não ajudam a prever qual é o problema real. O peso da decisão do modelo recai 100% sobre o texto escrito pelo cidadão. Como os textos costumam ter um tamanho parecido em todos os canais, isso simplificou nossa engenharia de dados, permitindo focar diretamente na capacidade de leitura dos modelos.
 
-Como Cientista de Dados no time de IA, grande parte do seu trabalho será **testar e avaliar sistemas de IA em contextos reais de aplicação** — e é exatamente isso que este desafio simula: auditar o modelo em produção e recomendar, com base em evidências, se devemos ou não trocá-lo pelo modelo B.
+Ao auditar o modelo atual em produção (Modelo A), descobrimos que sua performance global escondia falhas logísticas graves. O modelo era ruim em ler reclamações muito curtas e sofria de uma confusão estrutural: ele frequentemente classificava vazamentos de esgoto como buracos na via, o que na prática envia equipes de asfalto para resolver problemas de encanamento. Pior ainda, o Modelo A sofria de "superconfiança". Ele errava com o mesmo grau de certeza matemática com que acertava, o que torna muito perigoso deixá-lo despachar equipes automaticamente sem supervisão humana.
 
-Este desafio avalia suas habilidades em análise exploratória, estatística aplicada à avaliação de modelos e geração de recomendações acionáveis para gestão pública.
+O Modelo B, por sua vez, provou ser estatisticamente superior em nossos testes. Ele corrigiu o problema da leitura de textos curtos e també, eliminou a confusão entre esgoto e buracos na via. Além de acertar mais, o Modelo B possui melhores resultados quando citado sua própria incerteza. Conseguimos provar que quando ele está confuso, sua nota de confiança cai. Isso é um ganho imenso para a operação, pois nos permite criar uma esteira automática segura: podemos deixar o modelo agir sozinho quando tem mais de 80, 90% de certeza, e mandar apenas as dúvidas para um atendente humano analisar, enquanto no modelo A isso não era possível.
 
-> Os dados deste desafio são totalmente sintéticos: os chamados, rótulos e predições foram gerados artificialmente para simular o comportamento estatístico de um sistema real de classificação — nenhum dado de cidadão foi utilizado.
+**Recomendação Executiva (Veredito)**
 
----
+**Recomendação:** Devemos substituir o Modelo A pelo Modelo B na operação da Central 1746.
 
-## Instruções
+**Justificativa e Ganhos:** A adoção do Modelo B entrega um salto de desempenho global estatisticamente comprovado. Do ponto de vista logístico, o principal ganho estrutural é a eliminação do gargalo entre problemas de saneamento (`esgoto_vazamento`) e pavimentação (`buraco_via`), cessando o roteamento incorreto de chamados de água para a Secretaria de Conservação e evitando o deslocamento inútil de maquinário. Além disso, a melhor calibração do modelo permite a adoção de uma esteira de automação segura: ao estabelecer um limiar de 80% de confiança, o sistema despacha automaticamente a maioria dos chamados com alta precisão e desvia apenas as predições incertas para a triagem humana, otimizando o tempo dos atendentes e reduzindo custos operacionais.
 
-1. Crie um **fork público desse repositório** com suas respostas
-2. Use **Jupyter Notebooks** (.ipynb) bem documentados — os notebooks devem rodar do início ao fim sem erros
-3. Inclua **README.md** explicando abordagem, como reproduzir e um **sumário executivo de no máximo 1 página** com seus principais achados e a recomendação final
-4. Faça commits ao longo do trabalho — o histórico deve refletir a evolução da análise (não faça um único commit no final)
-
----
-
-## Dados
-
-Arquivo: **`dados/chamados_com_predicoes.csv`** (5.000 chamados rotulados)
-
-| Coluna | Descrição |
-|---|---|
-| `id_chamado` | Identificador único |
-| `data_abertura` | Data de abertura do chamado |
-| `bairro` | Bairro informado |
-| `canal` | Canal de entrada (app, telefone ou portal) |
-| `texto` | Texto do chamado escrito pelo cidadão |
-| `categoria_real` | Categoria correta, atribuída por atendente humano |
-| `pred_modelo_a` | Categoria prevista pelo modelo A (produção) |
-| `conf_modelo_a` | Confiança declarada pelo modelo A (0 a 1) |
-| `pred_modelo_b` | Categoria prevista pelo modelo B (candidato) |
-| `conf_modelo_b` | Confiança declarada pelo modelo B (0 a 1) |
-
----
-
-## Parte 1: Análise Exploratória
-
-### 1. Panorama dos Chamados
-
-Explore o corpus e apresente o que um gestor precisaria saber sobre esses chamados: distribuição de categorias, características dos textos, padrões por canal, bairro ou tempo. Monte uma análise limpa, focando em tabelas e visualizações que **importam para o problema de classificação**.
-
-**Entregue**: Análise exploratória com visualizações e uma síntese dos 3-5 achados mais relevantes, explicitando por que cada um importa para avaliar os classificadores.
-
----
-
-## Parte 2: Auditoria do Modelo em Produção
-
-### 2. Desempenho com Incerteza
-
-Avalie o desempenho global e por categoria do modelo A. Reporte as métricas que julgar adequadas, **com intervalos de confiança**, justificando a escolha das métricas considerando o desbalanceamento das classes.
-
-**Entregue**: Tabela de métricas com incerteza quantificada, método de cálculo dos intervalos explicitado e justificativa das escolhas.
-
-### 3. Onde o Modelo Falha?
-
-O desempenho é homogêneo? Investigue se existem **subgrupos de chamados em que o modelo falha mais** (por categoria, características do texto, canal etc.). Analise também a matriz de confusão: os erros têm padrão?
-
-**Entregue**: Identificação e quantificação dos principais modos de falha, hipóteses sobre suas causas e discussão do **impacto prático** de cada um para o encaminhamento dos chamados.
-
----
-
-## Parte 3: Modelo A vs. Modelo B
-
-### 4. Devemos Trocar de Modelo?
-
-Compare o desempenho dos dois modelos e recomende: devemos substituir o modelo A pelo B? Atenção a dois pontos: (a) as predições são sobre os **mesmos chamados** — escolha um teste estatístico adequado a esse desenho; (b) verifique se a conclusão da métrica global se sustenta quando você olha **por categoria**.
-
-**Entregue**: Teste de hipótese com justificativa da escolha e interpretação correta do p-valor; comparação por categoria com discussão dos trade-offs encontrados; e um **parágrafo final de recomendação escrito para um gestor não técnico**, com os riscos da troca (se houver) explícitos e, se aplicável, medidas de mitigação. Este parágrafo deve constar também no sumário executivo do README.
-
----
-
-## Bônus (opcional) - Classificação com LLM
-
-> Desenvolva o bônus se sobrar tempo. Ele não compensa questões obrigatórias incompletas.
-
-Use um LLM de sua escolha para classificar uma amostra dos chamados e compare com os modelos A e B.
-
-**Entregue**: Prompt utilizado, resultados, custo aproximado e limitações da comparação.
-
----
-
-## Avaliação
-
-Você será avaliado em cada uma das categorias abaixo, com seus respectivos pesos:
-
-- **Rigor estatístico** (métricas adequadas, incerteza, testes corretos, cuidado com conclusões): peso 2
-- **Investigação e análise exploratória** (padrões não óbvios, hipóteses, conexão entre EDA e erros dos modelos): peso 1
-- **Comunicação** (sumário executivo, visualizações, tradução de resultados em recomendação): peso 1
-- **Boas práticas** (reprodutibilidade, organização do repositório, commits, documentação): peso 1
-
-Uma média ponderada será calculada e os melhores candidatos serão chamados para a etapa de entrevistas.
-
-**Dica**: não existe uma única resposta certa. Preferimos uma análise honesta sobre limitações a uma análise que finge certeza — e profundidade importa mais que completude.
-
----
-
-## Estrutura Sugerida do Repositório
-
-```
-desafio-ds-junior/
-├── README.md
-├── notebooks/
-│   ├── 01_analise_exploratoria.ipynb
-│   ├── 02_auditoria_modelo_a.ipynb
-│   └── 03_comparacao_e_recomendacao.ipynb
-├── dados/
-│   └── chamados_com_predicoes.csv
-├── results/
-│   └── figures/
-└── requirements.txt
-```
-
----
-
-## FAQ
-
-**1. Posso usar bibliotecas específicas?**
-Sim! Sugestões: pandas, numpy, scipy, statsmodels, scikit-learn, matplotlib, seaborn, plotly.
-
-**2. Posso usar assistentes de IA (ChatGPT, Claude, Copilot)?**
-Sim, mas você deve ser capaz de explicar e defender cada decisão na entrevista técnica. Conclusões sem código que as produza, ou código que você não entende, contam contra.
-
-**3. Preciso fazer todas as questões?**
-As questões 1 a 4 sim, mas profundidade importa mais que completude. O bônus é opcional de verdade.
-
-**4. Preciso treinar um modelo?**
-Não. O desafio é de **avaliação** de modelos, não de treinamento — resista à tentação.
-
----
-
-Boa sorte! 🚀
+**Riscos e Medidas de Mitigação:** A troca de arquitetura apresenta um único custo operacional mapeado: a degradação preditiva na categoria `poda_arvore`. Os erros desta classe passaram a se pulverizar em outras categorias em vez de acertar o alvo. Como **medida de mitigação**, sugere-se a criação de uma regra sistêmica de segurança durante os primeiros meses de implantação: chamados que contenham um vocabulário associado à arborização (árvore, galho, raiz), mas que o modelo classifique com baixa confiança para outras secretarias, devem ser compulsoriamente desviados para a fila de triagem humana antes do despacho definitivo.
