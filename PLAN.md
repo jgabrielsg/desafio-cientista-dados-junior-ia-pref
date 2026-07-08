@@ -29,12 +29,12 @@ As diretrizes abaixo embasam as escolhas estatísticas e dão o suporte analíti
 - [x] Síntese: Registrar os 3-5 achados essenciais que impactam a classificação.
 
 ### Fase 2: Auditoria Modelo A - `02_auditoria_modelo_a.ipynb` 
-- [ ] Calcular Acurácia, Precision, Recall e F1-Score globais e por classe.
-- [ ] Implementar Bootstrapping para gerar os Intervalos de Confiança das métricas.
-- [ ] Plotar e interpretar a Matriz de Confusão.
-- [ ] Analisar calibração: Relação entre `conf_modelo_a` e taxa empírica de acerto.
-- [ ] Identificar subgrupos de falha (ex: bairros específicos ou canais com maior erro).
-- [ ] Síntese: Registrar os principais modos de falha e impacto operacional.
+- [x] Calcular Acurácia, Precision, Recall e F1-Score globais e por classe.
+- [x] Implementar Bootstrapping para gerar os Intervalos de Confiança das métricas.
+- [x] Plotar e interpretar a Matriz de Confusão.
+- [x] Analisar calibração: Relação entre `conf_modelo_a` e taxa empírica de acerto.
+- [x] Identificar subgrupos de falha (ex: bairros específicos ou canais com maior erro).
+- [x] Síntese: Registrar os principais modos de falha e impacto operacional.
 
 ### Fase 3: Comparação e Recomendação - `03_comparacao_e_recomendacao.ipynb`
 - [ ] Calcular métricas de desempenho para o Modelo B.
@@ -62,3 +62,16 @@ As diretrizes abaixo embasam as escolhas estatísticas e dão o suporte analíti
 * **4. Desvios Sistemáticos nas Predições Marginais (Mapeamento de Viés):**
     * A comparação das distribuições marginais revela que os modelos não reproduzem a proporção real das categorias. Há indícios visuais de que um ou ambos os modelos tendem a inflar artificialmente a frequência de predição de certas classes.
     * *Impacto no Classificador:* Esse diagnóstico antecipa distorções que serão investigadas na Fase 2 e Fase 3 através da matriz de confusão.
+
+### Conclusões da Fase 2 (Auditoria do Modelo A)
+
+* **1. Incerteza e Estabilidade Preditiva (Bootstrapping):**
+    * O desempenho global (F1-Score Macro de ~0.77) é estatisticamente estável. Contudo, a quantificação de incerteza por categoria comprovou a alta variância em classes com menor suporte amostral (ex: `sinalizacao`), demonstrando que a confiabilidade do modelo cai severamente na ausência de volume de dados.
+* **2. Modos de Falha Críticos (Sobreposição Semântica):**
+    * A matriz de confusão revelou que o pior desempenho do modelo ocorre na classe `esgoto_vazamento` (Recall ~0.57), cujos falsos negativos são massivamente classificados como `buraco_via`. O modelo falha na desambiguação sintática entre problemas de saneamento e pavimentação.
+    * *Impacto Prático:* Gera ineficiência logística por deslocamento de equipes incorretas (Secretaria de Conservação em vez de concessionária de água/esgoto).
+* **3. Calibração de Probabilidades (Superconfiança):**
+    * O cálculo do Expected Calibration Error (ECE) e o Diagrama de Confiabilidade indicam que o modelo é superconfiante. Quando o sistema reporta >90% de certeza, a acurácia empírica orbita próximo de 80%. As distribuições de probabilidade para predições erradas e corretas possuem alta sobreposição.
+    * *Impacto Prático:* O uso da métrica `conf_modelo_a` como gatilho para automação total de despachos (*Straight-Through Processing*) é de alto risco.
+* **4. Viés Algorítmico e Subgrupos:**
+    * Testes Qui-Quadrado aplicados aos erros comprovaram desempenho homogêneo para bairro (p=0.86) e canal (p=0.36), atestando equidade na prestação do serviço. No entanto, rejeitou-se a hipótese de homogeneidade para o comprimento do texto ($p < 0.05$). Textos do primeiro quartil (Q1, manifestações muito curtas) concentram taxas de erro expressivamente maiores devido à esparsidade de features (falta de contexto semântico).
